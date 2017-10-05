@@ -60,7 +60,7 @@ type Config struct {
 // undefined once the Provider's context is canceled.
 func (p *Provider) Verifier(config *Config) *IDTokenVerifier {
 
-	return newVerifier(p.remoteKeySet, config, p.issuer)
+	return newVerifier(p.RemoteKeySet, config, p.Issuer)
 }
 
 func newVerifier(keySet keySet, config *Config, issuer string) *IDTokenVerifier {

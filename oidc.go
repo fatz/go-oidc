@@ -56,15 +56,15 @@ func doRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
 
 // Provider represents an OpenID Connect server's configuration.
 type Provider struct {
-	issuer      string
-	authURL     string
-	tokenURL    string
-	userInfoURL string
+	Issuer      string
+	AuthURL     string
+	TokenURL    string
+	UserInfoURL string
 
 	// Raw claims returned by the server.
-	rawClaims []byte
+	RawClaims []byte
 
-	remoteKeySet *remoteKeySet
+	RemoteKeySet *remoteKeySet
 }
 
 type cachedKeys struct {
@@ -115,12 +115,12 @@ func NewProvider(ctx context.Context, issuer string) (*Provider, error) {
 		return nil, fmt.Errorf("oidc: issuer did not match the issuer returned by provider, expected %q got %q", issuer, p.Issuer)
 	}
 	return &Provider{
-		issuer:       p.Issuer,
-		authURL:      p.AuthURL,
-		tokenURL:     p.TokenURL,
-		userInfoURL:  p.UserInfoURL,
-		rawClaims:    body,
-		remoteKeySet: newRemoteKeySet(ctx, p.JWKSURL, time.Now),
+		Issuer:       p.Issuer,
+		AuthURL:      p.AuthURL,
+		TokenURL:     p.TokenURL,
+		UserInfoURL:  p.UserInfoURL,
+		RawClaims:    body,
+		RemoteKeySet: newRemoteKeySet(ctx, p.JWKSURL, time.Now),
 	}, nil
 }
 
@@ -138,15 +138,15 @@ func NewProvider(ctx context.Context, issuer string) (*Provider, error) {
 // For a list of fields defined by the OpenID Connect spec see:
 // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
 func (p *Provider) Claims(v interface{}) error {
-	if p.rawClaims == nil {
+	if p.RawClaims == nil {
 		return errors.New("oidc: claims not set")
 	}
-	return json.Unmarshal(p.rawClaims, v)
+	return json.Unmarshal(p.RawClaims, v)
 }
 
 // Endpoint returns the OAuth2 auth and token endpoints for the given provider.
 func (p *Provider) Endpoint() oauth2.Endpoint {
-	return oauth2.Endpoint{AuthURL: p.authURL, TokenURL: p.tokenURL}
+	return oauth2.Endpoint{AuthURL: p.AuthURL, TokenURL: p.TokenURL}
 }
 
 // UserInfo represents the OpenID Connect userinfo claims.
@@ -169,11 +169,11 @@ func (u *UserInfo) Claims(v interface{}) error {
 
 // UserInfo uses the token source to query the provider's user info endpoint.
 func (p *Provider) UserInfo(ctx context.Context, tokenSource oauth2.TokenSource) (*UserInfo, error) {
-	if p.userInfoURL == "" {
+	if p.UserInfoURL == "" {
 		return nil, errors.New("oidc: user info endpoint is not supported by this provider")
 	}
 
-	req, err := http.NewRequest("GET", p.userInfoURL, nil)
+	req, err := http.NewRequest("GET", p.UserInfoURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("oidc: create GET request: %v", err)
 	}
