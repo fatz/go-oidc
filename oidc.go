@@ -124,6 +124,47 @@ func NewProvider(ctx context.Context, issuer string) (*Provider, error) {
 	}, nil
 }
 
+// NewProviderNotStrict accepts unequal issuer
+//
+// The issuer is the URL identifier for the service. For example: "https://accounts.google.com"
+// or "https://login.salesforce.com".
+func NewProviderNotStrict(ctx context.Context, issuer string) (*Provider, error) {
+	wellKnown := strings.TrimSuffix(issuer, "/") + "/.well-known/openid-configuration"
+	req, err := http.NewRequest("GET", wellKnown, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := doRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s: %s", resp.Status, body)
+	}
+
+	var p providerJSON
+	err = unmarshalResp(resp, body, &p)
+	if err != nil {
+		return nil, fmt.Errorf("oidc: failed to decode provider discovery object: %v", err)
+	}
+
+	return &Provider{
+		Issuer:       p.Issuer,
+		AuthURL:      p.AuthURL,
+		TokenURL:     p.TokenURL,
+		UserInfoURL:  p.UserInfoURL,
+		RawClaims:    body,
+		RemoteKeySet: newRemoteKeySet(ctx, p.JWKSURL, time.Now),
+	}, nil
+}
+
 // Claims unmarshals raw fields returned by the server during discovery.
 //
 //    var claims struct {
